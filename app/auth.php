@@ -18,7 +18,7 @@ const LOCK_AFTER = 5;
 const LOCK_MINUTES = 15;
 const IP_LIMIT = 30;
 const INVITE_HOURS = 72;
-const PENDING_SECONDS = 300;
+const PENDING_SECONDS = 600;   // time for the second step; first-time setup on a phone means switching to the authenticator app and back
 
 /* ---------- the signed-in person ---------- */
 function current_staff(): ?array {
@@ -110,7 +110,10 @@ function login_2fa(string $code): ?string {
   return null;
 }
 /** First-time 2FA enrolment during sign-in. The secret waits in the session until a code proves the app is set up. */
-function login_2fa_setup_secret(): ?string { if (!pending_staff()) return null; return $_SESSION['pending']['new_secret'] ??= totp_new_secret(); }
+/** The same secret on every attempt until enrolment succeeds (tied to this person and their current password), so an
+    authenticator entry added on an earlier, timed-out attempt keeps working. Only the server can derive it. */
+function enrol_secret(array $s): string { return b32_encode(substr(hash_hmac('sha256', 'totp-enrol|' . $s['id'] . '|' . (string)$s['password_hash'], (string)cfg('app_secret'), true), 0, 20)); }
+function login_2fa_setup_secret(): ?string { $s = pending_staff(); if (!$s) return null; return $_SESSION['pending']['new_secret'] ??= enrol_secret($s); }
 function login_2fa_setup(string $code): ?string {
   $s = pending_staff(); if (!$s) return 'session_expired';
   $secret = $_SESSION['pending']['new_secret'] ?? null; if (!$secret) return 'session_expired';
