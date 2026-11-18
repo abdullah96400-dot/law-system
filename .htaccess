@@ -1,0 +1,12 @@
+# Al Imtyaz Law — law.alimtyazgcc.com
+Options -Indexes
+RewriteEngine On
+# code, settings, migrations, tools, tests and stored data are never served
+RewriteRule ^(app|migrations|storage|tools|tests)(/|$) - [F,L]
+RewriteRule ^config(\.sample)?\.php$ - [F,L]
+RewriteRule \.(md|sql|log)$ - [F,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>
