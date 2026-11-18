@@ -29,7 +29,7 @@ $GLOBALS['ROUTE'] = $path;
 try { mig_auto(); } catch (Throwable $e) {
   error_log('LAW migrate: ' . $e->getMessage()); http_response_code(500);
   $sk = (string)cfg('setup_key', '');   // during installation, the person holding the setup key sees the reason
-  if (strlen($sk) >= 32 && hash_equals($sk, (string)($_GET['key'] ?? $_POST['key'] ?? ''))) exit('Setup error: ' . htmlspecialchars($e->getMessage()));
+  if (strlen($sk) >= 32 && hash_equals($sk, preg_replace('/[^0-9a-zA-Z]/', '', (string)($_GET['key'] ?? $_POST['key'] ?? '')))) exit('Setup error: ' . htmlspecialchars($e->getMessage()));
   // a safe hint for everyone: names the cause, never the details
   $m = $e->getMessage(); $hint = 'See the server error log.';
   if (str_contains($m, '[1045]') || stripos($m, 'Access denied') !== false) $hint = 'The database refused the username or password. Check db_user and db_pass in config.php (lines 8 and 9). | قاعدة البيانات رفضت اسم المستخدم أو كلمة المرور: راجع السطرين 8 و9 في config.php.';
@@ -54,7 +54,7 @@ if (is_post() && $me && office_readonly() && !in_array($path, ['/logout', '/lang
 
 /* ---------- public ---------- */
 if ($path === '/setup') {   // first install without SSH: checks the server and creates the first office / demo office. Off unless setup_key is set.
-  $key = (string)cfg('setup_key', ''); $given = (string)($_POST['key'] ?? $_GET['key'] ?? '');
+  $key = (string)cfg('setup_key', ''); $given = preg_replace('/[^0-9a-zA-Z]/', '', (string)($_POST['key'] ?? $_GET['key'] ?? ''));   // copied links can carry invisible marks
   if (strlen($key) < 32 || !hash_equals($key, $given)) { http_response_code(404); render('error', ['title' => t('error'), 'msg' => t('not_found')]); exit; }
   $realOffices = (int)row('SELECT COUNT(*) n FROM offices WHERE demo = 0')['n']; $demoOffices = (int)row('SELECT COUNT(*) n FROM offices WHERE demo = 1')['n'];
   $out = null; $err = null;
