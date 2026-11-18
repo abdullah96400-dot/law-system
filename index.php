@@ -55,7 +55,11 @@ if (is_post() && $me && office_readonly() && !in_array($path, ['/logout', '/lang
 /* ---------- public ---------- */
 if ($path === '/setup') {   // first install without SSH: checks the server and creates the first office / demo office. Off unless setup_key is set.
   $key = (string)cfg('setup_key', ''); $given = preg_replace('/[^0-9a-zA-Z]/', '', (string)($_POST['key'] ?? $_GET['key'] ?? ''));   // copied links can carry invisible marks
-  if (strlen($key) < 32 || !hash_equals($key, $given)) { http_response_code(404); render('error', ['title' => t('error'), 'msg' => t('not_found')]); exit; }
+  if (strlen($key) < 32) { http_response_code(404); render('error', ['title' => t('error'), 'msg' => t('not_found')]); exit; }
+  if (!hash_equals($key, $given)) {   // ask for the key on the page itself: links copied from chats can lose or change it
+    if ($given !== '') { usleep(400000); http_response_code(403); }
+    render('setup_key', ['title' => 'Setup', 'wrong' => $given !== '']); exit;
+  }
   $realOffices = (int)row('SELECT COUNT(*) n FROM offices WHERE demo = 0')['n']; $demoOffices = (int)row('SELECT COUNT(*) n FROM offices WHERE demo = 1')['n'];
   $out = null; $err = null;
   if (is_post()) {
