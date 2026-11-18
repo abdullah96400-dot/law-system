@@ -10,5 +10,5 @@
     <input id="password" name="password" type="password" dir="ltr" autocomplete="current-password" required>
     <button class="btn"><?= h(t('sign_in')) ?></button>
   </form>
-  <p class="muted small"><?= h(t('forgot_password_hint')) ?></p>
+  <p class="small"><a href="/login/forgot"><?= h(t('forgot_link')) ?></a></p>
 </section>

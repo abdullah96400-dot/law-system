@@ -137,6 +137,19 @@ function twofa_off(array $me, string $password): ?string {
   law_audit('2fa_disabled', 'staff', $me['id'], [], (int)$me['office_id'], $me);
   return null;
 }
+/** Forgot password: email a one-time link (the invitation page) to an active staff member. Silent for unknown addresses.
+    At most 3 links per person per hour; older links stop working when a new one is sent. */
+function password_reset_request(string $email): void {
+  $email = norm_email($email); if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return;
+  usleep(random_int(200000, 500000));   // similar timing for known and unknown addresses
+  $s = row("SELECT s.* FROM staff s JOIN offices o ON o.id = s.office_id WHERE s.email=? AND s.status='active' AND o.status <> 'suspended'", [$email]); if (!$s) return;
+  $recent = (int)row('SELECT COUNT(*) n FROM invites WHERE staff_id=? AND created_by IS NULL AND created_at > ?', [$s['id'], date('Y-m-d H:i:s', time() - 3600)])['n'];
+  if ($recent >= 3) return;
+  $prev = $GLOBALS['OFFICE_SCOPE'] ?? null; set_office_scope((int)$s['office_id']);
+  $tok = issue_invite((int)$s['id'], null); send_invite_mail($s, $tok, true);
+  law_audit('password_reset_requested', 'staff', $s['id'], [], (int)$s['office_id'], $s);
+  set_office_scope($prev);
+}
 function finish_login(array $s): void {
   session_regenerate_id_safe();
   $_SESSION = ['sid' => (int)$s['id'], 'sv' => (int)$s['session_ver'], 'last' => time(), 'lang' => $s['lang']];

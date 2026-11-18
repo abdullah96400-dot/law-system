@@ -35,6 +35,11 @@ return [
   'mail_from' => 'info@alimtyazgcc.com',
   'mail_from_name' => 'Al Imtyaz Law | الامتياز للمحاماة',
 
+  // Owner download of the newest encrypted backup, to keep a copy off this server:
+  //   https://law.alimtyazgcc.com/backup/latest?key=THIS_VALUE   (40+ random characters; empty = off)
+  // Open it with: php law/tools/backup_decrypt.php --in=… --out=…   (needs files_key)
+  'backup_key' => '',
+
   // Two-step sign-in: each office can require it for everyone (Settings). true = always required for partners and office managers.
   'twofa_managers' => false,
 

@@ -150,7 +150,22 @@ if ($path === '/cron/daily') {   // hPanel cron: wget -q -O /dev/null "https://l
   header('Content-Type: text/plain; charset=utf-8'); $r = reminders_all(); if (backup_due()) backup_run();
   echo 'ok ' . count($r) . " offices\n"; exit;
 }
-if (preg_match('#^/invite/([A-Za-z0-9_-]{20,100})$#', $path, $m)) {
+if ($path === '/login/forgot') {   // self-service reset: the same answer whether or not the address exists
+  if ($me) redirect('/');
+  $sent = false;
+  if (is_post()) { password_reset_request(post('email')); $sent = true; }
+  render('forgot', ['title' => t('forgot_title'), 'sent' => $sent]); exit;
+}
+if ($path === '/backup/latest') {   // owner only: the newest encrypted backup, to keep a copy off this server (needs backup_key in config.php)
+  $key = (string)cfg('backup_key', '');
+  if (strlen($key) < 32 || !hash_equals($key, preg_replace('/[^0-9a-zA-Z]/', '', (string)($_GET['key'] ?? '')))) not_found();
+  $files = glob(storage_dir() . '/backups/law-*.jsonl.gz.enc') ?: []; sort($files); $f = end($files);
+  if (!$f) { http_response_code(404); header('Content-Type: text/plain'); exit('No backup yet. Run the daily job first.'); }
+  law_audit('backup_downloaded', null, null, ['file' => basename($f)], null, ['id' => null, 'full_name' => 'Owner (backup_key)', 'email' => '']);
+  header('Content-Type: application/octet-stream'); header('Content-Disposition: attachment; filename="' . basename($f) . '"'); header('Content-Length: ' . filesize($f)); header('Cache-Control: no-store');
+  readfile($f); exit;
+}
+if (preg_match('#^/invite/([^/]{20,400})$#', $path, $m) && strlen($m[1] = preg_replace('/[^A-Za-z0-9_-]/', '', $m[1])) >= 20) {   // links copied from mail or chat can carry invisible marks
   $inv = invite_lookup($m[1]);
   if (!$inv) { http_response_code(404); render('error', ['title' => t('error'), 'msg' => t('invite_invalid')]); exit; }
   $_SESSION['lang'] ??= $inv['lang'];
