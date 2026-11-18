@@ -55,7 +55,10 @@ if (is_post() && $me && office_readonly() && !in_array($path, ['/logout', '/lang
 /* ---------- public ---------- */
 if ($path === '/setup') {   // first install without SSH: checks the server and creates the first office / demo office. Off unless setup_key is set.
   $key = (string)cfg('setup_key', ''); $given = preg_replace('/[^0-9a-zA-Z]/', '', (string)($_POST['key'] ?? $_GET['key'] ?? ''));   // copied links can carry invisible marks
-  if (strlen($key) < 32) { http_response_code(404); render('error', ['title' => t('error'), 'msg' => t('not_found')]); exit; }
+  // closes by itself once the first real office's partner has signed in, even if setup_key is still in config.php
+  // ('setup_keep_open' => true in config.php keeps it open, e.g. to reset a partner's sign-in)
+  $closed = !cfg('setup_keep_open', false) && row("SELECT s.id FROM staff s JOIN offices o ON o.id = s.office_id WHERE o.demo = 0 AND s.role = 'partner' AND s.last_login IS NOT NULL LIMIT 1");
+  if (strlen($key) < 32 || $closed) { http_response_code(404); render('error', ['title' => t('error'), 'msg' => t('not_found')]); exit; }
   if (!hash_equals($key, $given)) {   // ask for the key on the page itself: links copied from chats can lose or change it
     if ($given !== '') { usleep(400000); http_response_code(403); }
     render('setup_key', ['title' => 'Setup', 'wrong' => $given !== '']); exit;
