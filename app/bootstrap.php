@@ -168,6 +168,7 @@ require __DIR__ . '/demo.php';
 require __DIR__ . '/ui.php';
 require __DIR__ . '/workspace.php';
 require __DIR__ . '/plans.php';
+require __DIR__ . '/website.php';
 require __DIR__ . '/country.php';
 require __DIR__ . '/casework.php';
 require __DIR__ . '/accounts.php';

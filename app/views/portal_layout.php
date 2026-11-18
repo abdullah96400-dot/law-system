@@ -8,7 +8,7 @@
 <title><?= h(($title ?? '') . ' · ' . office_name($o)) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/law.css?v=16">
+<link rel="stylesheet" href="/assets/law.css?v=17">
 <script src="/assets/law.js?v=15" defer></script>
 </head>
 <body class="portal">

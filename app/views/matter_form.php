@@ -17,7 +17,7 @@ $lk = function (string $field, string $kind, bool $req = false) use ($sel, $err)
     <?= empty_state(t('matter_no_checks'), t('matters_empty_help'), can('conflicts', 'create') ? '/conflicts/new' : null, t('check_new'), 'shield') ?>
   <?php else: ?>
   <form method="post" class="form-grid">
-    <?= csrf_field() ?>
+    <?= csrf_field() ?><?php if (!empty($fromRequest)): ?><input type="hidden" name="from_request" value="<?= (int)$fromRequest ?>"><p class="note small"><?= h(t('sr_matter_from_note')) ?></p><?php endif; ?>
     <fieldset>
       <legend><?= h(t('grp_case')) ?></legend>
       <div class="form-grid">

@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 $host = strtolower(preg_replace('/:\d+$/', '', (string)($_SERVER['HTTP_HOST'] ?? '')));
-if (!str_starts_with($host, 'law.')) { http_response_code(404); exit('Not found'); }
+$lawHost = str_starts_with($host, 'law.');   // any other address is an office's own website domain, or "Not found"
 
 $path = '/' . trim(rawurldecode((string)parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH)), '/');
 if (isset($_GET['r'])) $path = '/' . trim((string)$_GET['r'], '/');   // fallback when URL rewriting is off
@@ -41,6 +41,11 @@ try { mig_auto(); } catch (Throwable $e) {
   exit('<meta charset="utf-8"><div style="font:16px system-ui;margin:40px;line-height:1.8">Setup error. ' . htmlspecialchars($hint) . '</div>');
 }
 
+if (!$lawHost) {   // an office's own domain serves only its public website
+  if (is_post()) check_csrf();
+  $so = site_office_by_host($host); if (!$so) { http_response_code(404); exit('Not found'); }
+  site_dispatch($so, '', $path);
+}
 if (str_starts_with($path, '/api/v1/')) api_handle($path);   // signed server-to-server calls from the Al Imtyaz platform; no session, no CSRF
 
 if (is_post()) check_csrf();
@@ -147,7 +152,7 @@ if (preg_match('#^/s/([A-Za-z0-9_-]{40,60})(/download)?$#', $path, $m)) {   // s
 if ($path === '/cron/daily') {   // hPanel cron: wget -q -O /dev/null "https://law.alimtyazgcc.com/cron/daily?key=…"
   $key = (string)cfg('cron_key', '');
   if ($key === '' || !hash_equals($key, (string)($_GET['key'] ?? ''))) not_found();
-  header('Content-Type: text/plain; charset=utf-8'); $r = reminders_all(); if (backup_due()) backup_run();
+  header('Content-Type: text/plain; charset=utf-8'); $r = reminders_all(); sr_purge(); if (backup_due()) backup_run();
   echo 'ok ' . count($r) . " offices\n"; exit;
 }
 if ($path === '/login/forgot') {   // self-service reset: the same answer whether or not the address exists
@@ -175,6 +180,12 @@ if (preg_match('#^/invite/([^/]{20,400})$#', $path, $m) && strlen($m[1] = preg_r
     if (!$err) { logout(); flash(t('pw_set_now_sign_in')); redirect('/login'); }
   }
   render('invite', ['title' => t('set_password'), 'err' => $err, 'inv' => $inv, 'office' => row('SELECT * FROM offices WHERE id=?', [(int)$inv['office_id']])]); exit;
+}
+
+/* ---------- the office's public website: law.…/o/{code}/… ---------- */
+if (preg_match('#^/o/([a-z0-9-]{3,20})(/.*)?$#i', $path, $om)) {
+  $so = site_office_by_code($om[1]); if (!$so) not_found();
+  site_dispatch($so, '/o/' . strtolower($so['code']), ($om[2] ?? '') === '' ? '/' : $om[2]);
 }
 
 /* ---------- client portal ---------- */
@@ -395,12 +406,16 @@ if ($path === '/matters') {
 if ($path === '/matters/new') {
   require_perm('matters', 'create');
   $err = null; $d = ['check_id' => (int)($_GET['check'] ?? 0), 'lead_id' => $me['id'], 'opened_on' => date('Y-m-d')];
+  $fromReq = (int)($_GET['req'] ?? $_POST['from_request'] ?? 0);   // opened from a website request: prefilled, and linked back after saving
+  $sreq = $fromReq && can('website', 'create', $me) ? sr_get($fromReq, $me) : null;
+  if ($sreq && !is_post()) { $d['check_id'] = (int)$sreq['check_id']; $d['client_id'] = (int)$sreq['contact_id']; $d['title'] = $sreq['service_title']; $d['summary'] = (string)$sreq['message'];
+    if (($_GET['as'] ?? '') === 'consult') foreach (lookups('status') as $st) if (!$st['is_closed'] && ($st['name_ar'] === 'استشارة أولية' || $st['name_en'] === 'Initial consultation')) { $d['status_id'] = (int)$st['id']; break; } }
   if (is_post()) {
     $r = matter_open($me, $_POST);
-    if (isset($r['id'])) { flash(t('matter_opened')); redirect('/matters/' . $r['id']); }
+    if (isset($r['id'])) { if ($sreq) sr_link_matter($me, (int)$sreq['id'], (int)$r['id'], (int)post('check_id')); flash(t('matter_opened')); redirect('/matters/' . $r['id']); }
     $err = $r['error']; $d = $r['data'];
   }
-  render('matter_form', ['title' => t('matter_new'), 'm' => null, 'd' => $d, 'err' => $err]); exit;
+  render('matter_form', ['title' => t('matter_new'), 'm' => null, 'd' => $d, 'err' => $err, 'fromRequest' => $sreq['id'] ?? null]); exit;
 }
 if (preg_match('#^/matters/(\d+)(?:/(edit|status|next|parties|team|notes)|/(parties|team)/(\d+)/remove)?$#', $path, $mm)) {
   require_perm('matters', 'view');
@@ -702,6 +717,69 @@ if ($path === '/notifications') {
 }
 
 /* ---------- office settings ---------- */
+/* ---------- the office website: management (draft, preview, publish) ---------- */
+if ($path === '/site' || str_starts_with($path, '/site/')) {
+  $me = require_staff(); if (!feature_on('website')) not_found();
+  if (str_starts_with($path, '/site/preview')) {   // staff see the draft exactly as visitors would
+    if (!can('website', 'share', $me) && !can('website', 'view', $me)) deny();
+    $sub = substr($path, strlen('/site/preview')); site_dispatch(current_office(), '/site/preview', $sub === '' ? '/' : $sub, true);
+  }
+  if (!site_can_manage($me)) deny();
+  if (is_post() && office_readonly()) deny('office_readonly');
+  if ($path === '/site') {
+    render('site_admin', ['title' => t('site_admin'), 'c' => site_content('draft'), 'row' => site_row(), 'domains' => site_domains(), 'err' => null]); exit;
+  }
+  if ($path === '/site/general' && is_post()) {
+    $e = site_update_general($me, $_POST); if ($e) { flash(t($e), 'err'); redirect('/site#general'); }
+    flash(t('site_draft_saved')); redirect('/site#general');
+  }
+  if (preg_match('#^/site/(lawyers|services)/(new|[a-f0-9]{6,16})$#', $path, $sm)) {
+    $c = site_content('draft'); $key = $sm[2] === 'new' ? null : $sm[2]; $it = $key ? site_item($c, $sm[1], $key) : ['show' => 1]; if ($key && !$it) not_found();
+    $err = null;
+    if (is_post()) { [$k, $err] = site_item_save($me, $sm[1], $key, $_POST); if (!$err) { flash(t('site_draft_saved')); redirect('/site#' . $sm[1]); } $it = $_POST + ['key' => $key]; }
+    render('site_item', ['title' => t($sm[1] === 'lawyers' ? 'site_lawyer' : 'site_service'), 'kind' => $sm[1], 'it' => $it, 'key' => $key, 'err' => $err]); exit;
+  }
+  if (preg_match('#^/site/(lawyers|services)/([a-f0-9]{6,16})/(up|down|remove)$#', $path, $sm) && is_post()) { site_item_move($me, $sm[1], $sm[2], $sm[3]); flash(t('site_draft_saved')); redirect('/site#' . $sm[1]); }
+  if ($path === '/site/publish' && is_post()) { $e = site_publish($me); flash(t($e ?: 'site_published_ok'), $e ? 'err' : 'ok'); redirect('/site'); }
+  if ($path === '/site/unpublish' && is_post()) { site_unpublish($me); flash(t('site_unpublished_ok')); redirect('/site'); }
+  if ($path === '/site/discard' && is_post()) { oq('UPDATE office_sites SET draft = live WHERE office_id = :office AND live IS NOT NULL', []); law_audit('site_draft_discarded', 'office_site', office_id(), [], null, $me); flash(t('site_draft_discarded')); redirect('/site'); }
+  if ($path === '/site/domains' && is_post()) {
+    if ($me['role'] !== 'partner') deny();
+    $e = site_domain_add($me, post('host')); flash(t($e ?: 'site_domain_added'), $e ? 'err' : 'ok'); redirect('/site#domains');
+  }
+  if (preg_match('#^/site/domains/(\d+)/remove$#', $path, $sm) && is_post()) { if ($me['role'] !== 'partner') deny(); site_domain_remove($me, (int)$sm[1]); flash(t('saved')); redirect('/site#domains'); }
+  not_found();
+}
+
+/* ---------- requests from the website ---------- */
+if ($path === '/requests') {
+  $me = require_perm('website', 'view'); if (!feature_on('website')) not_found();
+  $f = ['status' => (string)($_GET['status'] ?? ''), 'service' => (string)($_GET['service'] ?? ''), 'assignee' => (string)($_GET['assignee'] ?? ''), 'page' => (int)($_GET['page'] ?? 1)];
+  [$list, $total] = sr_list($me, $f);
+  render('requests', ['title' => t('sr_title'), 'list' => $list, 'total' => $total, 'f' => $f, 'counts' => sr_counts($me), 'services' => site_content('live')['services'] ?: site_content('draft')['services'], 'staff' => active_staff()]); exit;
+}
+if (preg_match('#^/requests/(\d+)(?:/(status|assign|note|contact|check))?$#', $path, $rm)) {
+  $me = require_perm('website', 'view'); if (!feature_on('website')) not_found();
+  $r = sr_get((int)$rm[1], $me); if (!$r) not_found();
+  $act = $rm[2] ?? '';
+  if ($act !== '') {
+    if (!is_post()) not_found();
+    if (office_readonly()) deny('office_readonly');
+    if ($act === 'status') { $e = sr_set_status($me, $r, post('status')); }
+    elseif ($act === 'assign') { $e = sr_assign($me, $r, (int)post('assignee')); }
+    elseif ($act === 'note') { $e = sr_note($me, $r, post('body')); }
+    elseif ($act === 'check') { $res = sr_start_check($me, $r); $e = $res['error'] ?? null; if (!$e) { flash(t('sr_check_started')); redirect('/conflicts/' . $res['id']); } }
+    else {
+      $res = sr_link_contact($me, $r, (int)post('contact_id'), post('mode') === 'new', post('confirm') === '1');
+      if (isset($res['dups'])) { render('request', ['title' => $r['ref'], 'r' => $r, 'notes' => sr_notes((int)$r['id']), 'staff' => active_staff(), 'dups' => $res['dups']]); exit; }
+      $e = $res['error'] ?? null;
+    }
+    if ($e) { flash(t($e), 'err'); } else flash(t('saved'));
+    redirect('/requests/' . $r['id']);
+  }
+  render('request', ['title' => $r['ref'], 'r' => $r, 'notes' => sr_notes((int)$r['id']), 'staff' => active_staff(), 'dups' => null]); exit;
+}
+
 if ($path === '/settings') {
   if (!can('staff', 'view') && !can('settings', 'view') && !can('audit', 'view')) deny();
   render('settings', ['title' => t('office_settings'), 'o' => current_office(), 'tpls' => tpl_list(true)]); exit;

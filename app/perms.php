@@ -13,11 +13,11 @@
 declare(strict_types=1);
 
 const ROLES = ['partner', 'office_manager', 'lawyer', 'trainee', 'coordinator', 'accountant', 'reception'];
-const MODULES = ['clients', 'conflicts', 'matters', 'calendar', 'tasks', 'documents', 'legal_notes', 'finance', 'reports', 'staff', 'settings', 'audit'];
+const MODULES = ['clients', 'conflicts', 'matters', 'calendar', 'tasks', 'documents', 'legal_notes', 'finance', 'reports', 'website', 'staff', 'settings', 'audit'];
 const ACTIONS = ['view', 'create', 'edit', 'download', 'share', 'delete'];
 const ADMIN_MODULES = ['staff', 'settings', 'audit'];
 /** Modules whose screens exist in this release. The others are configurable now and take effect when they ship. */
-const LIVE_MODULES = ['clients', 'conflicts', 'matters', 'legal_notes', 'calendar', 'tasks', 'documents', 'finance', 'reports', 'staff', 'settings', 'audit'];
+const LIVE_MODULES = ['clients', 'conflicts', 'matters', 'legal_notes', 'calendar', 'tasks', 'documents', 'finance', 'reports', 'website', 'staff', 'settings', 'audit'];
 /** What Al Imtyaz support may open during an approved visit: view only, never documents, money or legal notes. */
 const SUPPORT_MODULES = ['clients', 'conflicts', 'matters', 'calendar', 'tasks', 'reports', 'staff', 'settings', 'audit'];
 /** Roles that must use two-step sign-in. */
@@ -26,12 +26,12 @@ const ROLES_2FA = ['partner', 'office_manager'];
 /** Starting matrix for a new office. v=view c=create e=edit d=download s=share x=delete */
 const ROLE_DEFAULTS = [
   'office_manager' => ['clients' => 'vcedsx', 'conflicts' => 'vce', 'matters' => 'vcedsx', 'calendar' => 'vcex', 'tasks' => 'vcex', 'documents' => 'vcedsx',
-                       'finance' => 'vcedx', 'reports' => 'vd', 'staff' => 'vcex', 'settings' => 've', 'audit' => 'vd'],
-  'lawyer'      => ['clients' => 'vce', 'conflicts' => 'vc', 'matters' => 'vce', 'calendar' => 'vce', 'tasks' => 'vce', 'documents' => 'vceds', 'legal_notes' => 'vce', 'finance' => 'v', 'reports' => 'v'],
+                       'finance' => 'vcedx', 'reports' => 'vd', 'website' => 'vces', 'staff' => 'vcex', 'settings' => 've', 'audit' => 'vd'],
+  'lawyer'      => ['clients' => 'vce', 'conflicts' => 'vc', 'matters' => 'vce', 'calendar' => 'vce', 'tasks' => 'vce', 'documents' => 'vceds', 'legal_notes' => 'vce', 'finance' => 'v', 'reports' => 'v', 'website' => 'v'],
   'trainee'     => ['clients' => 'v', 'conflicts' => 'v', 'matters' => 'v', 'calendar' => 'vce', 'tasks' => 'vce', 'documents' => 'vcd', 'legal_notes' => 'vc'],
-  'coordinator' => ['clients' => 'vce', 'conflicts' => 'vc', 'matters' => 'vce', 'calendar' => 'vce', 'tasks' => 'vce', 'documents' => 'vcd', 'reports' => 'v'],
+  'coordinator' => ['clients' => 'vce', 'conflicts' => 'vc', 'matters' => 'vce', 'calendar' => 'vce', 'tasks' => 'vce', 'documents' => 'vcd', 'reports' => 'v', 'website' => 've'],
   'accountant'  => ['clients' => 'v', 'matters' => 'v', 'finance' => 'vced', 'reports' => 'vd'],
-  'reception'   => ['clients' => 'vc', 'conflicts' => 'vc', 'calendar' => 'vc', 'tasks' => 'v'],
+  'reception'   => ['clients' => 'vc', 'conflicts' => 'vc', 'calendar' => 'vc', 'tasks' => 'v', 'website' => 've'],
 ];
 const ACTION_LETTERS = ['v' => 'view', 'c' => 'create', 'e' => 'edit', 'd' => 'download', 's' => 'share', 'x' => 'delete'];
 

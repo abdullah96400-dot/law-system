@@ -132,7 +132,7 @@ function nav_groups(array $me, ?bool $admin = null): array {
   $admin ??= can('staff', 'view') || can('settings', 'view') || can('audit', 'view');
   return [
   null => [['/', 'home', 'home', true]],
-  'nav_work' => [['/matters', 'mod_matters', 'folder', can('matters', 'view')], ['/clients', 'mod_clients', 'users', can('clients', 'view')], ['/conflicts', 'mod_conflicts', 'shield', can('conflicts', 'view')], ['/delegations', 'mod_delegations', 'delegate', can('calendar', 'view') && feature_on('delegations')]],
+  'nav_work' => [['/matters', 'mod_matters', 'folder', can('matters', 'view')], ['/clients', 'mod_clients', 'users', can('clients', 'view')], ['/conflicts', 'mod_conflicts', 'shield', can('conflicts', 'view')], ['/delegations', 'mod_delegations', 'delegate', can('calendar', 'view') && feature_on('delegations')], ['/requests', 'sr_title', 'inbox', can('website', 'view') && feature_on('website')]],
   'nav_schedule' => [['/calendar', 'mod_calendar', 'calendar', can('calendar', 'view')], ['/tasks', 'mod_tasks', 'tasks', true]],
   'nav_files' => [['/documents', 'mod_documents', 'file', can('documents', 'view')], ['/templates', 'mod_templates', 'contract', can('documents', 'view') && feature_on('templates')], ['/finance', 'mod_finance', 'wallet', can('finance', 'view') && feature_on('finance')]],
   'nav_office' => [['/reports', 'mod_reports', 'chart', can('reports', 'view') && feature_on('reports')], ['/trash', 'mod_trash', 'trash', trash_can_view($me)], ['/settings', 'settings_menu', 'settings', $admin]],

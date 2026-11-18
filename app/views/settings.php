@@ -7,6 +7,7 @@
     if (can('settings', 'view')) $hs[] = ['#office', 'settings', 'ink', t('office_settings'), t('hub_office_sub')];
     if (can('staff', 'view')) $hs[] = ['/staff', 'users', 'blue', t('staff'), t('tile_staff')];
     if (can('settings', 'view')) { $hs[] = ['/roles', 'shield', 'violet', t('roles'), t('tile_roles')]; $hs[] = ['/settings/lists', 'tasks', 'petrol', t('lists'), t('tile_lists')]; if (feature_on('branches')) $hs[] = ['/settings/branches', 'globe', 'green', t('branches'), t('tile_branches')]; }
+    if (site_can_manage($me)) $hs[] = ['/site', 'globe', 'blue', t('site_admin'), t(site_is_live() ? 'site_state_live' : 'site_state_off')];
     if (can('audit', 'view')) $hs[] = ['/audit', 'clock', 'gold', t('act_log'), t('tile_audit')];
     if (trash_can_view($me)) { $hs[] = ['/settings/backups', 'shield', 'petrol', t('bk_title'), t('hub_backup_sub')]; $hs[] = ['/trash', 'trash', 'red', t('mod_trash'), t('hub_trash_sub')]; }
     if (feature_on('templates') && can('documents', 'view')) $hs[] = ['/templates', 'contract', 'gold', t('mod_templates'), ''];

@@ -7,7 +7,7 @@
    ========================================================================== */
 declare(strict_types=1);
 
-const PLAN_FEATURES = ['portal', 'finance', 'delegations', 'templates', 'reports', 'import', 'branches'];
+const PLAN_FEATURES = ['portal', 'finance', 'delegations', 'templates', 'reports', 'import', 'branches', 'website'];
 
 function office_features(?array $o = null): ?array {
   $o ??= current_office(); if (!$o || empty($o['features'])) return null;
