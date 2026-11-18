@@ -54,4 +54,11 @@ $checks = [
     <div class="full"><button class="btn">Create office and send the invitation</button></div>
   </form>
 </section>
-<?php else: ?><section class="card"><p>A real office exists. Create more offices from the Al Imtyaz team app (Law offices) or with SSH (law/tools/create_office.php).</p></section><?php endif; ?>
+<?php else: ?>
+<?php foreach ($waiting ?? [] as $w): ?>
+<section class="card"><h2>Partner not signed in yet</h2>
+  <p><?= h($w['full_name']) ?> — <span dir="ltr"><?= h($w['email']) ?></span> (<?= h($w['code']) ?>) has not accepted the invitation. | لم يقبل الشريك الدعوة بعد.</p>
+  <form method="post" action="/setup"><?= csrf_field() ?><input type="hidden" name="key" value="<?= h($key) ?>"><input type="hidden" name="do" value="reinvite"><input type="hidden" name="staff" value="<?= (int)$w['id'] ?>"><button class="btn">New invitation link | رابط دعوة جديد</button></form>
+</section>
+<?php endforeach; ?>
+<section class="card"><p>A real office exists. Create more offices from the Al Imtyaz team app (Law offices) or with SSH (law/tools/create_office.php).</p></section><?php endif; ?>

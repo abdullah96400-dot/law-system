@@ -67,6 +67,10 @@ if ($path === '/setup') {   // first install without SSH: checks the server and 
     if ($do === 'office' && !$realOffices) {
       $r = create_office(post('code'), post('name_ar'), post('name_en'), post('email'), post('name'), ['send_mail' => true, 'lang' => 'ar']);
       if (isset($r['error'])) $err = t($r['error']); else { $out = ['link' => abs_url('/invite/' . $r['token'])]; law_audit('setup_office', 'office', $r['office_id'], [], (int)$r['office_id'], ['id' => null, 'full_name' => 'Setup', 'email' => '']); }
+    } elseif ($do === 'reinvite' && $realOffices) {   // the first partner never got in (link lost or expired): a fresh link, older ones stop working
+      $st = row("SELECT s.* FROM staff s JOIN offices o ON o.id = s.office_id WHERE o.demo = 0 AND s.role = 'partner' AND s.status = 'invited' AND s.id = ?", [(int)($_POST['staff'] ?? 0)]);
+      if ($st) { $prev = $GLOBALS['OFFICE_SCOPE'] ?? null; set_office_scope((int)$st['office_id']); $tok = issue_invite((int)$st['id'], null); send_invite_mail($st, $tok); set_office_scope($prev);
+        law_audit('setup_reinvite', 'staff', (int)$st['id'], [], (int)$st['office_id'], ['id' => null, 'full_name' => 'Setup', 'email' => '']); $out = ['link' => abs_url('/invite/' . $tok)]; }
     } elseif ($do === 'demo' && !$demoOffices) {
       if (!files_key()) $err = 'files_key';
       else { $r = demo_create('DEMO-01'); set_office_scope(null); if (isset($r['error'])) $err = t($r['error']); else $out = ['logins' => $r['logins'], 'portal' => $r['portal']]; }
@@ -75,7 +79,7 @@ if ($path === '/setup') {   // first install without SSH: checks the server and 
   }
   $GLOBALS['LAYOUT'] = 'layout';
   ob_start();
-  try { render('setup', ['title' => 'Setup', 'key' => $given, 'real' => $realOffices, 'demo' => $demoOffices, 'out' => $out, 'err' => $err]); ob_end_flush(); }
+  try { render('setup', ['title' => 'Setup', 'key' => $given, 'waiting' => $realOffices ? rows("SELECT s.id, s.full_name, s.email, o.code FROM staff s JOIN offices o ON o.id = s.office_id WHERE o.demo = 0 AND s.role = 'partner' AND s.status = 'invited' ORDER BY s.id") : [], 'real' => $realOffices, 'demo' => $demoOffices, 'out' => $out, 'err' => $err]); ob_end_flush(); }
   catch (Throwable $e) {   // the key holder sees why the page failed
     ob_end_clean(); error_log('LAW setup: ' . $e->getMessage()); http_response_code(500);
     echo '<meta charset="utf-8"><div style="font:16px system-ui;margin:40px;line-height:1.8"><b>Setup page error:</b> ' . htmlspecialchars($e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')') . '</div>';
