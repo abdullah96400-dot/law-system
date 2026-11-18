@@ -29,7 +29,16 @@ $GLOBALS['ROUTE'] = $path;
 try { mig_auto(); } catch (Throwable $e) {
   error_log('LAW migrate: ' . $e->getMessage()); http_response_code(500);
   $sk = (string)cfg('setup_key', '');   // during installation, the person holding the setup key sees the reason
-  exit(strlen($sk) >= 32 && hash_equals($sk, (string)($_GET['key'] ?? '')) ? 'Setup error: ' . htmlspecialchars($e->getMessage()) : 'Setup error. See the server error log.');
+  if (strlen($sk) >= 32 && hash_equals($sk, (string)($_GET['key'] ?? $_POST['key'] ?? ''))) exit('Setup error: ' . htmlspecialchars($e->getMessage()));
+  // a safe hint for everyone: names the cause, never the details
+  $m = $e->getMessage(); $hint = 'See the server error log.';
+  if (str_contains($m, '[1045]') || stripos($m, 'Access denied') !== false) $hint = 'The database refused the username or password. Check db_user and db_pass in config.php (lines 8 and 9). | قاعدة البيانات رفضت اسم المستخدم أو كلمة المرور: راجع السطرين 8 و9 في config.php.';
+  elseif (str_contains($m, '[1049]') || stripos($m, 'Unknown database') !== false) $hint = 'The database name is wrong. Check dbname in db_dsn in config.php (line 7). | اسم قاعدة البيانات غير صحيح: راجع السطر 7 في config.php.';
+  elseif (str_contains($m, '[2002]') || stripos($m, 'Connection refused') !== false) $hint = 'Cannot reach the database server. Keep host=localhost in config.php (line 7). | تعذّر الوصول إلى خادم قاعدة البيانات: اجعل host=localhost في السطر 7.';
+  elseif (stripos($m, 'could not find driver') !== false) $hint = 'PHP has no MySQL driver (pdo_mysql). Enable it in hPanel → PHP configuration. | فعّل إضافة pdo_mysql من إعدادات PHP في hPanel.';
+  elseif (stripos($m, 'Permission denied') !== false || stripos($m, 'failed to open') !== false) $hint = 'PHP cannot write to the storage folder. Set the storage folder permission to 755. | لا يستطيع PHP الكتابة في مجلد storage: اجعل صلاحيته 755.';
+  else $hint = 'Database tables could not be created. Open this page with ?key=YOUR_SETUP_KEY to see the reason. | تعذّر إنشاء الجداول: افتح الصفحة مع مفتاح الإعداد لرؤية السبب.';
+  exit('<meta charset="utf-8"><div style="font:16px system-ui;margin:40px;line-height:1.8">Setup error. ' . htmlspecialchars($hint) . '</div>');
 }
 
 if (str_starts_with($path, '/api/v1/')) api_handle($path);   // signed server-to-server calls from the Al Imtyaz platform; no session, no CSRF
