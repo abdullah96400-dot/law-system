@@ -28,7 +28,7 @@ $checks = [
   </tbody></table></div>
 </section>
 <?php if ($out && isset($out['link'])): ?>
-<section class="card"><h2>Office created</h2><p>The invitation was emailed to the managing partner. This one-time link does the same (valid 72 hours):</p><p class="break" dir="ltr"><code><?= h($out['link']) ?></code></p></section>
+<section class="card"><h2>Office created</h2><p>The invitation was emailed to the managing partner. This one-time link does the same (valid 72 hours):</p><p class="break" dir="ltr"><a class="btn" href="<?= h($out['link']) ?>">Open the invitation | افتح الدعوة</a></p><p class="break small muted" dir="ltr"><code><?= h($out['link']) ?></code></p></section>
 <?php endif; ?>
 <?php if ($out && isset($out['logins'])): ?>
 <section class="card"><h2>Demo office DEMO-01 created</h2><p class="note small">Save these now. They are not shown again.</p>

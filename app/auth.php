@@ -186,6 +186,7 @@ function invite_staff(array $me, string $email, string $name, string $role, stri
 }
 /** Look up a usable invitation (any office: the token itself identifies it). */
 function invite_lookup(string $tok): ?array {
+  $tok = preg_replace('/[^A-Za-z0-9_-]/', '', $tok);   // links copied from mail or chat can carry invisible marks
   if ($tok === '' || strlen($tok) > 100) return null;
   $i = row('SELECT i.*, s.email, s.full_name, s.status AS staff_status, s.lang FROM invites i JOIN staff s ON s.id = i.staff_id AND s.office_id = i.office_id WHERE i.token_hash=?', [keyed_hash($tok)]);
   if (!$i || $i['used_at'] || strtotime($i['expires_at']) < time() || $i['staff_status'] === 'disabled') return null;
