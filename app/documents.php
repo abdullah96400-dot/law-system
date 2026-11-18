@@ -23,7 +23,7 @@ const DOC_TYPES = ['pdf' => ['application/pdf'], 'docx' => ['application/vnd.ope
 const DOC_PREVIEW = ['pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png'];
 const SHARE_MAX_DAYS = 30;
 
-function files_key(): ?string { $k = base64_decode((string)cfg('files_key', ''), true); return $k !== false && strlen($k) === SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_KEYBYTES ? $k : null; }
+function files_key(): ?string { $k = base64_decode((string)cfg('files_key', ''), true); return $k !== false && strlen($k) === 32 ? $k : null; }
 function files_dir(): string { return rtrim((string)cfg('files_dir', law_root() . '/storage/files'), '/'); }
 function doc_path(int $officeId, string $stored): string { return files_dir() . '/' . $officeId . '/' . substr($stored, 0, 2) . '/' . $stored; }
 function max_upload_bytes(): int { return (int)cfg('max_upload_mb', 20) * 1048576; }

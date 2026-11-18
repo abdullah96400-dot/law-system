@@ -74,7 +74,13 @@ if ($path === '/setup') {   // first install without SSH: checks the server and 
     $realOffices = (int)row('SELECT COUNT(*) n FROM offices WHERE demo = 0')['n']; $demoOffices = (int)row('SELECT COUNT(*) n FROM offices WHERE demo = 1')['n'];
   }
   $GLOBALS['LAYOUT'] = 'layout';
-  render('setup', ['title' => 'Setup', 'key' => $given, 'real' => $realOffices, 'demo' => $demoOffices, 'out' => $out, 'err' => $err]); exit;
+  ob_start();
+  try { render('setup', ['title' => 'Setup', 'key' => $given, 'real' => $realOffices, 'demo' => $demoOffices, 'out' => $out, 'err' => $err]); ob_end_flush(); }
+  catch (Throwable $e) {   // the key holder sees why the page failed
+    ob_end_clean(); error_log('LAW setup: ' . $e->getMessage()); http_response_code(500);
+    echo '<meta charset="utf-8"><div style="font:16px system-ui;margin:40px;line-height:1.8"><b>Setup page error:</b> ' . htmlspecialchars($e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')') . '</div>';
+  }
+  exit;
 }
 if ($path === '/theme' && is_post()) {   // light or dark; kept in a cookie on this device only
   $th = post('theme') === 'dark' ? 'dark' : 'light';
