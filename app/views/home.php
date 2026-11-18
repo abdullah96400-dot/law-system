@@ -105,4 +105,4 @@ if (can('reports', 'view') && feature_on('reports')) $hubs[] = ['/reports', 'cha
   </ul>
 </section>
 <?php endif; ?>
-<?php if (!$me['totp_secret'] && !in_array($me['role'], ROLES_2FA, true) && !is_support($me)): ?><p class="note small"><?= h(t('2fa_optional_hint')) ?> <a href="/account"><?= h(t('account')) ?></a></p><?php endif; ?>
+<?php if (false): ?><p class="note small"><?= h(t('2fa_optional_hint')) ?> <a href="/account"><?= h(t('account')) ?></a></p><?php endif; ?>

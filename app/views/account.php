@@ -9,6 +9,17 @@
   </dl>
 </section>
 
+<?php if ($me['totp_secret'] && !row('SELECT require_2fa_all FROM offices WHERE id=?', [(int)$me['office_id']])['require_2fa_all']): ?>
+<section class="card">
+  <h2><?= h(t('twofa_off_h')) ?></h2>
+  <p class="muted"><?= h(t('twofa_off_p')) ?></p>
+  <form method="post" action="/account/2fa-off" class="narrow-form"><?= csrf_field() ?>
+    <label for="cur2"><?= h(t('current_password')) ?></label>
+    <input id="cur2" name="current" type="password" dir="ltr" autocomplete="current-password" required>
+    <button class="btn ghost"><?= h(t('twofa_off_btn')) ?></button>
+  </form>
+</section>
+<?php endif; ?>
 <section class="card">
   <h2><?= h(t('change_password')) ?></h2>
   <?php if ($err): ?><div class="flash err" role="alert"><?= h(t($err)) ?></div><?php endif; ?>

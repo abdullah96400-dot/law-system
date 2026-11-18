@@ -40,7 +40,10 @@ function current_staff(): ?array {
 function current_staff_reset(): void { unset($GLOBALS['CURRENT_STAFF']); set_office_scope(null); }
 function require_staff(): array { $s = current_staff(); if (!$s) redirect('/login'); return $s; }
 function needs_2fa(array $s): bool {
-  if (in_array($s['role'], ROLES_2FA, true) || !empty($s['totp_secret'])) return true;
+  // two-step sign-in: required for everyone when the office turns it on (Settings); for partners and office managers only
+  // when config.php has 'twofa_managers' => true. A person who already set it up keeps using it until they turn it off.
+  if (!empty($s['totp_secret'])) return true;
+  if (cfg('twofa_managers', false) && in_array($s['role'], ROLES_2FA, true)) return true;
   $o = row('SELECT require_2fa_all FROM offices WHERE id=?', [(int)$s['office_id']]);
   return (bool)($o['require_2fa_all'] ?? 0);
 }
@@ -122,6 +125,16 @@ function login_2fa_setup(string $code): ?string {
   q('UPDATE staff SET totp_secret=?, totp_last=?, updated_at=? WHERE id=?', [seal_secret($secret), $step, now(), $s['id']]);
   law_audit('2fa_enabled', 'staff', $s['id'], [], (int)$s['office_id'], $s);
   finish_login(row('SELECT * FROM staff WHERE id=?', [$s['id']]));
+  return null;
+}
+/** Turn off one's own two-step sign-in (only when the office does not require it). Needs the current password. */
+function twofa_off(array $me, string $password): ?string {
+  $o = row('SELECT require_2fa_all FROM offices WHERE id=?', [(int)$me['office_id']]);
+  if (!empty($o['require_2fa_all'])) return 'twofa_required';
+  $s = row('SELECT password_hash FROM staff WHERE id=?', [(int)$me['id']]);
+  if (!$s || !password_verify($password, (string)$s['password_hash'])) return 'pw_current_wrong';
+  q('UPDATE staff SET totp_secret=NULL, totp_last=NULL, updated_at=? WHERE id=?', [now(), $me['id']]);
+  law_audit('2fa_disabled', 'staff', $me['id'], [], (int)$me['office_id'], $me);
   return null;
 }
 function finish_login(array $s): void {

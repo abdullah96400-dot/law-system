@@ -35,6 +35,9 @@ return [
   'mail_from' => 'info@alimtyazgcc.com',
   'mail_from_name' => 'Al Imtyaz Law | الامتياز للمحاماة',
 
+  // Two-step sign-in: each office can require it for everyone (Settings). true = always required for partners and office managers.
+  'twofa_managers' => false,
+
   // Sign out after this many idle minutes
   'session_idle_minutes' => 60,
 
