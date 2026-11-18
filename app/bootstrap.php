@@ -11,7 +11,8 @@ $LAW_ROOT = dirname(__DIR__);
 $cfgFile = getenv('LAW_CONFIG') ?: $LAW_ROOT . '/config.php';
 if (!is_file($cfgFile)) {
   http_response_code(500);
-  exit('<meta charset="utf-8"><p style="font:16px system-ui;margin:40px">Missing <b>law/config.php</b>. Copy <b>law/config.sample.php</b> to <b>law/config.php</b> and fill it in.</p>');
+  $here = htmlspecialchars($LAW_ROOT, ENT_QUOTES, 'UTF-8');
+  exit('<meta charset="utf-8"><div style="font:16px system-ui;margin:40px;line-height:1.7"><p>Missing <b>config.php</b>. Upload it to this folder, next to index.php:</p><p><code>' . $here . '/config.php</code></p><p dir="rtl">ملف الإعدادات config.php غير موجود. ارفعه إلى هذا المجلد بجانب index.php، وتأكد أن اسمه config.php تمامًا.</p></div>');
 }
 $CFG = require $cfgFile;
 date_default_timezone_set('Asia/Muscat');
