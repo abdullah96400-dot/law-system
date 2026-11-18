@@ -110,10 +110,7 @@ function backup_run(string $kind = 'nightly'): array {
     foreach ($tables as $tb) { $st = q("SELECT * FROM $tb"); while ($r = $st->fetch()) gzwrite($gz, json_encode(['t' => $tb, 'r' => $r], JSON_UNESCAPED_UNICODE) . "\n"); }
     gzclose($gz);
     $name = 'law-' . date('Ymd-His') . '.jsonl.gz.enc'; $dst = "$dir/$name";
-    [$state, $header] = sodium_crypto_secretstream_xchacha20poly1305_init_push($key);
-    $in = fopen($tmp, 'rb'); $out = fopen($dst, 'wb'); fwrite($out, $header);
-    while (true) { $c = fread($in, 65536); $last = feof($in); fwrite($out, sodium_crypto_secretstream_xchacha20poly1305_push($state, (string)$c, '', $last ? SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL : SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_MESSAGE)); if ($last) break; }
-    fclose($in); fclose($out); @unlink($tmp); @chmod($dst, 0640);
+    crypt_encrypt_file($tmp, $dst, $key); @unlink($tmp); @chmod($dst, 0640);
     $files = glob("$dir/law-*.jsonl.gz.enc") ?: []; sort($files); foreach (array_slice($files, 0, max(0, count($files) - 14)) as $old) @unlink($old);
     q('INSERT INTO backup_runs (kind, ok, size, note, at) VALUES (?,?,?,?,?)', [$kind, 1, filesize($dst), $name, now()]);
     return ['ok' => true, 'file' => $dst];

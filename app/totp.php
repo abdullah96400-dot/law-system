@@ -25,12 +25,5 @@ function totp_uri(string $secret, string $label): string {
 }
 
 /* ---------- secret at rest ---------- */
-function secret_box_key(): string { return sodium_crypto_generichash('law-totp|' . (string)cfg('app_secret'), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES); }
-function seal_secret(string $plain): string { $n = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES); return 'enc:' . base64_encode($n . sodium_crypto_secretbox($plain, $n, secret_box_key())); }
-function open_secret(?string $stored): ?string {
-  if (!$stored) return null;
-  if (!str_starts_with($stored, 'enc:')) return null;
-  $raw = base64_decode(substr($stored, 4), true); if ($raw === false || strlen($raw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) return null;
-  $p = sodium_crypto_secretbox_open(substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), secret_box_key());
-  return $p === false ? null : $p;
-}
+function seal_secret(string $plain): string { return crypt_seal($plain, 'law-totp'); }
+function open_secret(?string $stored): ?string { return crypt_open($stored, 'law-totp'); }

@@ -145,6 +145,7 @@ require __DIR__ . '/migrate.php';
 require __DIR__ . '/tenant.php';
 require __DIR__ . '/audit.php';
 require __DIR__ . '/perms.php';
+require __DIR__ . '/crypt.php';
 require __DIR__ . '/totp.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/offices.php';

@@ -5,7 +5,7 @@ $ok = fn(bool $c) => $c ? '<span class="badge-s b-green">OK</span>' : '<span cla
 $fd = (string)cfg('files_dir', ''); if ($fd !== '' && !is_dir($fd)) @mkdir($fd, 0750, true);
 $checks = [
   ['PHP ' . PHP_VERSION . ' (8.1+)', version_compare(PHP_VERSION, '8.1', '>=')],
-  ['sodium (encryption)', function_exists('sodium_crypto_secretstream_xchacha20poly1305_init_push')],
+  ['Encryption: ' . crypt_engine() . ' (sodium or OpenSSL)', crypt_available()],
   ['zip (full export)', class_exists('ZipArchive')],
   ['mbstring', function_exists('mb_strlen')],
   ['Database: ' . (is_sqlite() ? 'SQLite' : 'MySQL') . ' — tables created (' . count(mig_applied()) . '/' . count(mig_files()) . ')', count(mig_applied()) === count(mig_files())],

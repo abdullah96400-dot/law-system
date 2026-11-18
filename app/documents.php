@@ -2,7 +2,7 @@
 /* ==========================================================================
    Documents.
    - Files are stored outside the website folder under random names, each
-     encrypted (libsodium secretstream, XChaCha20-Poly1305) with the key in
+     encrypted (libsodium XChaCha20-Poly1305, or OpenSSL AES-256-GCM where PHP has no sodium) with the key in
      config.php ('files_key'). Without that key the app refuses uploads.
    - Allowed types and size are limited; PDFs with scripts, Office files
      with macros and the antivirus test file are refused; an optional ClamAV
@@ -54,24 +54,14 @@ function store_encrypted(string $src, int $officeId): string {
   $key = files_key(); if (!$key) throw new RuntimeException('files_key missing');
   $name = bin2hex(random_bytes(20)); $dst = doc_path($officeId, $name);
   if (!is_dir(dirname($dst)) && !@mkdir(dirname($dst), 0750, true)) throw new RuntimeException('Cannot create the files folder');
-  [$state, $header] = sodium_crypto_secretstream_xchacha20poly1305_init_push($key);
-  $in = fopen($src, 'rb'); $out = fopen($dst . '.part', 'wb'); fwrite($out, $header);
-  while (true) { $chunk = fread($in, 65536); $last = feof($in); fwrite($out, sodium_crypto_secretstream_xchacha20poly1305_push($state, (string)$chunk, '', $last ? SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL : SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_MESSAGE)); if ($last) break; }
-  fclose($in); fclose($out); rename($dst . '.part', $dst); @chmod($dst, 0640);
+  crypt_encrypt_file($src, $dst . '.part', $key); rename($dst . '.part', $dst); @chmod($dst, 0640);
   return $name;
 }
 /** Decrypt a stored file to the output (or to $sink). Returns false if the file is missing or was altered. */
 function stream_decrypted(int $officeId, string $stored, $sink = null): bool {
   $key = files_key(); $p = doc_path($officeId, $stored); if (!$key || !is_file($p)) return false;
-  $in = fopen($p, 'rb'); $header = fread($in, SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_HEADERBYTES);
-  $state = sodium_crypto_secretstream_xchacha20poly1305_init_pull((string)$header, $key);
-  $out = $sink ?? fopen('php://output', 'wb'); $ok = false;
-  while (!feof($in)) {
-    $c = fread($in, 65536 + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES); if ($c === '' || $c === false) break;
-    $r = sodium_crypto_secretstream_xchacha20poly1305_pull($state, $c); if ($r === false) break;
-    fwrite($out, $r[0]); if ($r[1] === SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL) { $ok = true; break; }
-  }
-  fclose($in); return $ok;
+  $out = $sink ?? fopen('php://output', 'wb');
+  return crypt_decrypt_file($p, $out, $key);
 }
 
 /** Check an uploaded file ($_FILES entry). Returns [tmp path, original name, ext, mime, size] or an error key. */
